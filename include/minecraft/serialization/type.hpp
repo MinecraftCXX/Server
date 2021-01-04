@@ -10,29 +10,32 @@
 namespace minecraft::net {
 template<typename T>
 struct numeric_type {
-    T val;
+    using value_type = T;
+
+    value_type val;
 
     numeric_type() : val() {}
 
-    numeric_type(T val) : val(val) {}
+    numeric_type(value_type val) : val(val) {}
 
     numeric_type &operator=(T newVal) {
         val = newVal;
     }
 
-    void read(const unsigned char *in, size_t length) = delete;
+    size_t read(const unsigned char *in, size_t length) = delete;
 
     template<typename Buffer>
     void write(Buffer &out) = delete;
 
-    operator T &() {
+    operator value_type &() {
         return val;
     }
 };
 
 template<>
-void numeric_type<bool>::read(const unsigned char *in, size_t length) {
+size_t numeric_type<bool>::read(const unsigned char *in, size_t length) {
     val = in[0];
+    return 1;
 }
 
 template<>
@@ -42,60 +45,61 @@ void numeric_type<bool>::write(Buffer &out) {
 }
 
 template<>
-void numeric_type<uint8_t>::read(const unsigned char *in, size_t length) {
+size_t numeric_type<uint8_t>::read(const unsigned char *in, size_t length) {
     val = in[0];
+    return 1;
 }
 
 template<>
 template<typename Buffer>
 void numeric_type<uint8_t>::write(Buffer &out) {
-    uint8_t u_val = hostToNetworkLong(val);
-    char *buffer = reinterpret_cast<char *>(&u_val);
-    out << buffer[0] << buffer[1];
+    out << reinterpret_cast<unsigned char*>(&val)[0];
 }
 
 template<>
-void numeric_type<int8_t>::read(const unsigned char *in, size_t length) {
+size_t numeric_type<int8_t>::read(const unsigned char *in, size_t length) {
     val = in[0];
+    return 1;
 }
 
 template<>
 template<typename Buffer>
 void numeric_type<int8_t>::write(Buffer &out) {
-    uint8_t u_val = hostToNetworkLong(val);
-    char *buffer = reinterpret_cast<char *>(&u_val);
-    out << buffer[0] << buffer[1];
+    out << reinterpret_cast<unsigned char*>(&val)[0];
 }
 
 template<>
-void numeric_type<uint16_t>::read(const unsigned char *in, size_t length) {
+size_t numeric_type<uint16_t>::read(const unsigned char *in, size_t length) {
     val = ((in[1] << 0u) | (in[0] << 8u));
+    return 2;
 }
 
 template<>
 template<typename Buffer>
 void numeric_type<uint16_t>::write(Buffer &out) {
-    uint16_t u_val = hostToNetworkLong(val);
-    char *buffer = reinterpret_cast<char *>(&u_val);
-    out << buffer[0] << buffer[1];
+    uint32_t u_val = hostToNetworkInt(val);
+    auto *buffer = reinterpret_cast<unsigned char *>(&u_val);
+    out << buffer[2] << buffer[3];  // Last 2 bytes of unsigned 32 bit big-endian int
 }
 
 template<>
-void numeric_type<int16_t>::read(const unsigned char *in, size_t length) {
+size_t numeric_type<int16_t>::read(const unsigned char *in, size_t length) {
     val = ((in[1] << 0u) | (in[0] << 8u));
+    return 2;
 }
 
 template<>
 template<typename Buffer>
 void numeric_type<int16_t>::write(Buffer &out) {
-    uint16_t u_val = hostToNetworkLong(val);
-    char *buffer = reinterpret_cast<char *>(&u_val);
-    out << buffer[0] << buffer[1];
+    uint32_t u_val = hostToNetworkInt(val);
+    auto *buffer = reinterpret_cast<unsigned char *>(&u_val);
+    out << buffer[2] << buffer[3];
 }
 
 template<>
-void numeric_type<int32_t>::read(const unsigned char *in, size_t length) {
+size_t numeric_type<int32_t>::read(const unsigned char *in, size_t length) {
     val = ((in[3] << 0u) | (in[2] << 8u) | (in[1] << 16u) | (in[0] << 24u));
+    return 4;
 }
 
 template<>
@@ -107,7 +111,7 @@ void numeric_type<int32_t>::write(Buffer &out) {
 }
 
 template<>
-void numeric_type<int64_t>::read(const unsigned char *in, size_t length) {
+size_t numeric_type<int64_t>::read(const unsigned char *in, size_t length) {
 #define toLong(x) static_cast<uint64_t>(x)
     val = ((toLong(in[7]) << 0ul)
         | (toLong(in[6]) << 8ul)
@@ -115,15 +119,16 @@ void numeric_type<int64_t>::read(const unsigned char *in, size_t length) {
         | (toLong(in[4]) << 24ul)
         | (toLong(in[3]) << 32ul)
         | (toLong(in[2]) << 40ul)
-        | (toLong(in[1]) << 40ul)
-        | (toLong(in[0]) << 40ul));
+        | (toLong(in[1]) << 48ul)
+        | (toLong(in[0]) << 56ul));
+    return 8;
 }
 
 template<>
 template<typename Buffer>
 void numeric_type<int64_t>::write(Buffer &out) {
-    uint32_t u_val = hostToNetworkLong(val);
-    char *buffer = reinterpret_cast<char *>(&u_val);
+    uint64_t u_val = hostToNetworkLong(val);
+    auto *buffer = reinterpret_cast<unsigned char*>(&u_val);
     out << buffer[0]
         << buffer[1]
         << buffer[2]
@@ -136,28 +141,29 @@ void numeric_type<int64_t>::write(Buffer &out) {
 
 template<typename T>
 struct var_type {
-    T val;
+    using value_type = T;
+    value_type val;
 
     var_type() : val() {}
 
-    var_type(T val) : val(val) {}
+    var_type(value_type val) : val(val) {}
 
-    var_type &operator=(T newVal) {
+    var_type &operator=(value_type newVal) {
         val = newVal;
     }
 
-    void read(const unsigned char *in, size_t length) = delete;
+    size_t read(const unsigned char *in, size_t length) = delete;
 
     template<typename Buffer>
     void write(Buffer &out) = delete;
 
-    operator T &() {
+    operator value_type &() {
         return val;
     }
 };
 
 template<>
-void var_type<int32_t>::read(const unsigned char *in, size_t length) {
+size_t var_type<int32_t>::read(const unsigned char *in, size_t length) {
     uint8_t index = 0;
     uint32_t u_val = 0;
 
@@ -178,6 +184,7 @@ void var_type<int32_t>::read(const unsigned char *in, size_t length) {
     }
 
     val = u_val;
+    return index + 1;
 }
 
 template<>
@@ -193,7 +200,7 @@ void var_type<int32_t>::write(Buffer &out) {
 }
 
 template<>
-void var_type<int64_t>::read(const unsigned char *in, size_t length) {
+size_t var_type<int64_t>::read(const unsigned char *in, size_t length) {
     uint8_t index = 0;
     uint64_t u_val = 0;
 
@@ -214,6 +221,7 @@ void var_type<int64_t>::read(const unsigned char *in, size_t length) {
     }
 
     val = u_val;
+    return index + 1;
 }
 
 template<>
@@ -232,11 +240,26 @@ struct string_type {
     std::string val;
 
     string_type() : val() {}
+    string_type(const char* val) : val(val) {}
     string_type(std::string &&val) : val(std::move(val)) {}
 
-    void read(const unsigned char *in, size_t length) {
-        val.resize(length);
-        memcpy(val.data(), in, length);
+    string_type& operator=(const char* rhs) {
+        val = std::string(rhs);
+    }
+
+    string_type& operator=(std::string&& rhs) {
+        val = std::move(rhs);
+    }
+
+    size_t read(const unsigned char *in, size_t length) {
+        var_type<int32_t> header;
+        size_t read = header.read(in, length);
+        in += read;
+
+        val.resize(header + 1); // Termination Character
+        memcpy(val.data(), in, header);
+        val[val.size()] = '\0';
+        return read + header;
     }
 
     template<typename Buffer>
@@ -251,8 +274,14 @@ struct string_type {
     }
 };
 
-using int64_type = numeric_type<int64_t>;
+
+using boolean_type = numeric_type<bool>;
+using uint8_type = numeric_type<uint8_t>;
+using int8_type = numeric_type<int8_t>;
+using uint16_type = numeric_type<uint16_t>;
+using int16_type = numeric_type<int16_t>;
 using int32_type = numeric_type<int32_t>;
+using int64_type = numeric_type<int64_t>;
 using varint64_type = var_type<int64_t>;
 using varint32_type = var_type<int32_t>;
 }

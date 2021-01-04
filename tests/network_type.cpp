@@ -1,5 +1,6 @@
 #include <array>
 #include <cstdint>
+#include <string>
 
 #include <gtest/gtest.h>
 
@@ -17,7 +18,33 @@ struct ArrayWrapper {
 };
 
 TEST(NetworkSerialization, Boolean) {
+    unsigned char testBuffer = 0x01;
 
+    minecraft::net::boolean_type integer;
+    integer.read(&testBuffer, 1);
+    EXPECT_TRUE(integer == true);
+
+    ArrayWrapper<unsigned char, 1> outBuffer;
+    integer.write(outBuffer);
+    EXPECT_TRUE(testBuffer == outBuffer.buffer[0]);
+}
+
+template <typename IntegerType>
+inline void testIngeger() {
+    IntegerType integer = -1;
+    ArrayWrapper<unsigned char, sizeof(IntegerType)> outBuffer;
+    integer.write(outBuffer);
+    integer.read(outBuffer.buffer.data(), outBuffer.buffer.size());
+    EXPECT_TRUE(integer == static_cast<typename IntegerType::value_type>(-1));
+}
+
+TEST(NetworkSerialization, Integer) {
+    testIngeger<minecraft::net::uint8_type>();
+    testIngeger<minecraft::net::int8_type>();
+    testIngeger<minecraft::net::uint16_type>();
+    testIngeger<minecraft::net::int16_type>();
+    testIngeger<minecraft::net::int32_type>();
+    testIngeger<minecraft::net::int64_type>();
 }
 
 TEST(NetworkSerialization, VarInt) {
@@ -46,4 +73,12 @@ TEST(NetworkSerialization, VarLong) {
     integer.write(outBuffer);
 
     EXPECT_TRUE(outBuffer.buffer == testBuffer);
+}
+
+TEST(NetworkSerialization, String) {
+    const char* testBuffer = "Test";
+    minecraft::net::string_type string = testBuffer;
+    ArrayWrapper<unsigned char, 5 + 4> outBuffer;
+    string.write(outBuffer);
+    string.read(outBuffer.buffer.data(), outBuffer.buffer.size());
 }

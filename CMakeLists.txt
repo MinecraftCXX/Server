@@ -9,7 +9,7 @@ if (endian)
     add_definitions(-DBIG_ENDIAN)
 endif()
 
-set(HEADERS include/minecraft/network/type.hpp)
+set(HEADERS include/minecraft/serialization/type.hpp include/minecraft/network/network_handler.hpp)
 set(SOURCES src/network/_placeholder.cpp)
 set(ENTRY src/main.cpp)
 

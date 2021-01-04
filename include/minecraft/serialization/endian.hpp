@@ -54,7 +54,6 @@
 #define hostToNetworkLong(x) (bswap_64(((uint64_t) x)))
 #define networkToHostInt(x) hostToNetworkInt(x)
 #define networkToHostLong(x) hostToNetworkLong(x)
-
 #endif
 
 #endif //GAMESERVER_ENDIAN_HPP
